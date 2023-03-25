@@ -20,8 +20,6 @@ build:
     - python=2.7
     - python>=3.6
 
-    
-
 requirements:
   host:
     - pip
@@ -48,4 +46,3 @@ about:
 extra:
   recipe-maintainers:
     - ad3002
-
