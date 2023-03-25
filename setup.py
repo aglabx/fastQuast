@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+#@created: 25.03.2023
+#@author: Aleksey Komissarov
+#@contact: ad3002@gmail.com
+"""Setup script for fastQuast."""
 from setuptools import setup, find_packages
 
 setup(

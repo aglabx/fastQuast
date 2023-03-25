@@ -4,17 +4,44 @@
 #@created: 25.03.2023
 #@author: Aleksey Komissarov
 #@contact: ad3002@gmail.com
+""" Fast quast for large assemblies. """
 
 import argparse
 import os
 import logging
+import sys
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-report_keys = ['Assembly', '# contigs (>= 0 bp)', '# contigs (>= 1000 bp)', '# contigs (>= 5000 bp)', '# contigs (>= 10000 bp)', '# contigs (>= 25000 bp)', '# contigs (>= 50000 bp)', 'Total length (>= 0 bp)', 'Total length (>= 1000 bp)', 'Total length (>= 5000 bp)', 'Total length (>= 10000 bp)', 'Total length (>= 25000 bp)', 'Total length (>= 50000 bp)', '# contigs', 'Largest contig', 'Total length', 'N50', 'L50', 'N75', 'L75', "# N's per 100 kbp"]
+report_keys = [
+    'Assembly',
+    '# contigs (>= 0 bp)',
+    '# contigs (>= 1000 bp)',
+    '# contigs (>= 5000 bp)',
+    '# contigs (>= 10000 bp)',
+    '# contigs (>= 25000 bp)',
+    '# contigs (>= 50000 bp)',
+    'Total length (>= 0 bp)',
+    'Total length (>= 1000 bp)',
+    'Total length (>= 5000 bp)',
+    'Total length (>= 10000 bp)',
+    'Total length (>= 25000 bp)',
+    'Total length (>= 50000 bp)',
+    '# contigs',
+    'Largest contig',
+    'Total length',
+    'N50',
+    'L50',
+    'N75',
+    'L75',
+    "# N's per 100 kbp"
+]
 
 def iter_fasta_file(fasta_file_name, split_scaffolds):
-    with open(fasta_file_name) as input_file:
+    """Iterate over a fasta file and yield the sequence length and a number of N.
+    If split_scaffolds is True, the sequence length will be split on Ns.
+    """
+    with open(fasta_file_name, encoding="utf8") as input_file:
         header = False
         seq_length = 0
         for line in input_file:
@@ -29,6 +56,7 @@ def iter_fasta_file(fasta_file_name, split_scaffolds):
                         seq_length = 0
             if not line:
                 break
+
             if line.startswith(">"):
                 if header:
                     yield seq_length, 0
@@ -38,8 +66,10 @@ def iter_fasta_file(fasta_file_name, split_scaffolds):
                 seq_length += len(line)
         if header:
             yield seq_length, 0
-            
+
+
 def get_n50_and_l50(contig_lengths):
+    """Return the N50 and L50 for a list of contig lengths."""
     total_length = sum(contig_lengths)
     target_length = total_length / 2
     sorted_lengths = sorted(contig_lengths, reverse=True)
@@ -48,8 +78,10 @@ def get_n50_and_l50(contig_lengths):
         current_length += length
         if current_length >= target_length:
             return length, i + 1
+    return 0, 0
 
 def get_n_and_l_for_fraction(contig_lengths, fraction):
+    """Return the N and L for a given fraction of the total assembly length."""
     total_length = sum(contig_lengths)
     target_length = total_length * fraction
     sorted_lengths = sorted(contig_lengths, reverse=True)
@@ -58,14 +90,18 @@ def get_n_and_l_for_fraction(contig_lengths, fraction):
         current_length += length
         if current_length >= target_length:
             return length, i + 1
+    return 0, 0
 
-def calculate_n_per_100kbp(total_length, total_N):
-    return (total_N / total_length) * 100000
+def calculate_n_per_100kbp(total_length, total_n):
+    """Return the number of Ns per 100 kbp."""
+    return (total_n / total_length) * 100000
 
 def count_n_bases(length):
+    """Return the number of N bases in a sequence."""
     return length.count('N') if isinstance(length, str) else 0
 
-def generate_data_dict(contig_lengths, assembly_name, total_N):
+def generate_data_dict(contig_lengths, assembly_name, total_n):
+    """Return a dictionary of data for the report."""
     n_contigs = len(contig_lengths)
     total_length = sum(contig_lengths)
     n_1000 = sum(1 for x in contig_lengths if x >= 1000)
@@ -81,7 +117,7 @@ def generate_data_dict(contig_lengths, assembly_name, total_N):
     largest_contig = max(contig_lengths)
     n50, l50 = get_n50_and_l50(contig_lengths)
     n75, l75 = get_n_and_l_for_fraction(contig_lengths, 0.75)
-    n_per_100kbp = calculate_n_per_100kbp(total_length, total_N)
+    n_per_100kbp = calculate_n_per_100kbp(total_length, total_n)
 
     report_dict = {
         'Assembly': assembly_name,
@@ -111,11 +147,11 @@ def generate_data_dict(contig_lengths, assembly_name, total_N):
 
 
 def generate_combined_report(results_data, tsv_report=False):
-    
+    """Return a string of the combined report."""
     lines = []
     for key in report_keys:
         lines.append([key.ljust(28)])
-    
+
     max_length_of_name = max([len(x) for x in results_data])
     max_adjusted_length = max_length_of_name + 18
 
@@ -126,21 +162,23 @@ def generate_combined_report(results_data, tsv_report=False):
 
     if tsv_report:
         return "\n".join(["\t".join([y.strip() for y in x]) for x in lines])
-    else:
-        return "\n".join(["".join(x) for x in lines])
-    
+    return "\n".join(["".join(x) for x in lines])
+
+
 def inter_assembly_summary(assembly_list):
+    """Return a string of the inter-assembly summary."""
     for i, assembly in enumerate(assembly_list, start=1):
-        N = assembly["# N's per 100 kbp"]
+        n_nucleotides = assembly["# N's per 100 kbp"]
         assembly_name = assembly['Assembly']
         n50 = assembly['N50']
         l50 = assembly['L50']
         total_length = assembly['Total length']
-        output = "    %s  %s, N50 = %s, L50 = %s, Total length = %s, # N's per 100 kbp = %s" % (i, assembly_name, n50, l50, total_length, N)
+        output = "    %s  %s, N50 = %s, L50 = %s, Total length = %s, # N's per 100 kbp = %s" % (i, assembly_name, n50, l50, total_length, n_nucleotides)
         yield output
- 
+
 
 def main():
+    """Run the main program."""
     parser = argparse.ArgumentParser(description='Fast and simple Quality Assessment Tool for Genome Assemblies')
 
     parser.add_argument('files_with_contigs', nargs='+', help='List of files with contigs')
@@ -162,11 +200,11 @@ def main():
         labels = [label.strip() for label in labels.split(",")]
         if len(labels) != len(files_to_process):
             logging.error("Error: number of labels should be equal to number of files")
-            exit(1)
+            sys.exit(1)
     else:
         labels = [
             os.path.splitext(os.path.basename(file_path))[0] for file_path in files_to_process]
-    
+
     output_files = []
     for file_name in files_to_process:
         logging.info("Processing file %s" % file_name)
@@ -176,25 +214,26 @@ def main():
                 os.makedirs(output_dir)
             output_file = os.path.join(output_dir, os.path.basename(output_file))
         output_files.append(output_file)
-        
+
     results_data = []
     for i, file_name in enumerate(files_to_process):
         sizes = []
-        total_N = 0
-        for seq_length, N in iter_fasta_file(file_name, split_scaffolds):
+        total_n = 0
+        for seq_length, n_nucleotides in iter_fasta_file(file_name, split_scaffolds):
             if seq_length >= min_contig:
                 sizes.append(seq_length)
-                total_N += N
-        results_data.append(generate_data_dict(sizes, labels[i], total_N))
+                total_n += n_nucleotides
+        results_data.append(generate_data_dict(sizes, labels[i], total_n))
 
     report_table = generate_combined_report(results_data, tsv_report=tsv_report)
 
     for output_file in output_files:
-        with open(output_file, "w") as f:
-            f.write(report_table)
+        with open(output_file, "w", encoding="utf8") as fw:
+            fw.write(report_table)
 
     for summary in inter_assembly_summary(results_data):
         print(summary)
+
 
 if __name__ == "__main__":
     main()
