@@ -152,11 +152,11 @@ def generate_combined_report(results_data, tsv_report=False):
     for key in report_keys:
         lines.append([key.ljust(28)])
 
-    max_length_of_name = max([len(x) for x in results_data])
+    max_length_of_name = max(len(x) for x in results_data)
     max_adjusted_length = max_length_of_name + 18
 
     for report in results_data:
-        max_adjusted_length = max([len(str(x)) for x in report.values()]) + 4
+        max_adjusted_length = max(len(str(x)) for x in report.values()) + 4
         for i, key in enumerate(report_keys):
             lines[i].append(str(report[key]).ljust(max_adjusted_length))
 
