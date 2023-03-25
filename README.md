@@ -81,7 +81,7 @@ optional arguments:
 Here's an example of how to use FastQuast:
 
 ```
-fastquast contigs.fasta -o results/ -s --min-contig 500 --labels "Assembly A, Assembly B" --tsv
+fastquast -o results/ -s --min-contig 500 --labels "Assembly A, Assembly B" --tsv contigs.fasta 
 ```
 
 This will assess the quality of the contigs.fasta assembly, split scaffolds by continuous fragments of N's, set a minimum contig length of 500 bp, label the assembly as "Assembly A" and "Assembly B" in the report, save the report in both human-readable and TSV format, and store the results in the results/ directory.
