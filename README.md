@@ -84,7 +84,3 @@ fastquast -o results/ --min-contig 500 --labels "Assembly A, Assembly B" --tsv c
 ```
 
 This will assess the quality of the contigs.fasta assembly, set a minimum contig length of 500 bp, label the assembly as "Assembly A" and "Assembly B" in the report, save the report in both human-readable and TSV format, and store the results in the results/ directory.
-
-
-
-
