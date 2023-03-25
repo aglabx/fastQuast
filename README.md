@@ -8,7 +8,6 @@ FastQuast provides the following features:
 
 - Works with python 2.7 and 3.6+
 - Fast and efficient quality assessment of genome assemblies similar to the classic Quast
-- Support for splitting assemblies by continuous fragments of N's and adding such "contigs" to the comparison
 - User-defined thresholds for contig length
 - Ability to save reports in TSV format (if you want more post-processing friedly format, but I prefer classic Quast txt format)
 
