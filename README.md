@@ -16,6 +16,12 @@ FastQuast provides the following features:
 
 FastQuast can be installed via pip or conda. First, make sure you have either pip or conda installed on your system.
 
+### Installation via conda
+
+```bash
+conda install -c bioconda fastquast
+```
+
 ### Installation via pip
 
 To install FastQuast via pip, run the following command:
